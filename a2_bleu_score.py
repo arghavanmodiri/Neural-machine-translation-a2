@@ -25,7 +25,15 @@ def grouper(seq, n):
     -------
     ngrams : list
     '''
-    assert False, "Fill me"
+    ngrams=[]
+    for i in range(0, len(seq)-n+1):
+        try:
+            w = seq[i:i+n]
+        except:
+            w = seq[i:-1]
+            continue
+        ngrams.append(w)
+    return ngrams
 
 
 def n_gram_precision(reference, candidate, n):
@@ -47,7 +55,13 @@ def n_gram_precision(reference, candidate, n):
         The n-gram precision. In the case that the candidate has length 0,
         `p_n` is 0.
     '''
-    assert False, "Fill me"
+    ref_n_grams = grouper(reference, n)
+    can_n_grams = grouper(candidate, n)
+    C = 0
+    for w in can_n_grams:
+        if w in ref_n_grams:
+            C += 1
+    return C*1.0/len(can_n_grams)
 
 
 def brevity_penalty(reference, candidate):
@@ -67,7 +81,15 @@ def brevity_penalty(reference, candidate):
         The brevity penalty. In the case that the candidate transcription is
         of 0 length, `BP` is 0.
     '''
-    assert False, "Fill me"
+    ref_len = len(reference)
+    can_len = len(candidate)
+    if can_len == 0:
+        return 0
+    brevity = ref_len / can_len * 1.0
+    if brevity < 1:
+        return 1
+    else:
+        return exp(1-brevity)
 
 
 def BLEU_score(reference, hypothesis, n):
@@ -90,4 +112,26 @@ def BLEU_score(reference, hypothesis, n):
     bleu : float
         The BLEU score
     '''
-    assert False, "Fill me"
+    B_score = 0
+    temp = 1
+    for n_i in range(1, n+1):
+        temp = temp * n_gram_precision(reference, hypothesis, n_i)
+    B_score = brevity_penalty(reference, hypothesis) * pow(temp, 1/n)
+    return B_score
+
+
+"""
+reference = '''\
+it is a guide to action that ensures that the military will always heed
+party commands'''.strip().split()
+candidate = '''\
+it is a guide to action which ensures that the military always obeys the
+commands of the party'''.strip().split()
+reference = [hash(word) for word in reference]
+candidate = [hash(word) for word in candidate]
+#print(grouper(["hello", "world", "!"], 2))
+print(reference)
+print(candidate)
+print(n_gram_precision(reference, candidate, 2))
+print(brevity_penalty(reference, candidate))
+"""
