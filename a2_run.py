@@ -95,9 +95,7 @@ def train(opts):
     del dev_prefixes, french_word2id, english_word2id
     model = init(opts, train_dataloader)
     print(model)
-    model.to(opts.device)
-    print(model.parameters())
-    optimizer = torch.optim.Adam(model.parameters())
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     best_bleu = 0.
     num_poor = 0
     epoch = 1
