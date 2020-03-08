@@ -339,8 +339,10 @@ class HansardDataLoader(torch.utils.data.DataLoader):
         dataset = HansardDataset(
             dir_, french_word2id, english_word2id, source_language, prefixes)
         super().__init__(dataset, collate_fn=self.collate, **kwargs)
+        print("alo?????")
 
     def collate(self, seq):
+        print("alo injaaa??")
         F, E = zip(*seq)
         F_lens = torch.tensor([len(f) for f in F])
         F = torch.nn.utils.rnn.pad_sequence(

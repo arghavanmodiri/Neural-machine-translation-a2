@@ -65,7 +65,35 @@ def train_for_epoch(model, dataloader, optimizer, device):
     # If you are running into CUDA memory errors part way through training,
     # try "del F, F_lens, E, logits, loss" at the end of each iteration of
     # the loop.
-    assert False, "Fill me"
+    loss_fn = torch.nn.CrossEntropyLoss()
+    loss_tot = 0.0
+    i = 0
+    for F, F_lens, E in dataloader:
+      i += 1
+      if i >= 100:
+        break
+      if torch.cuda.is_available():
+        F = F.to(device)
+        F_lens = F_lens.to(device)
+        E = E.to(device)
+      optimizer.zero_grad()
+      logits = model(F, F_lens, E)
+      pad_mask = model.get_target_padding_mask(E)
+      E = E.masked_fill(pad_mask, model.source_pad_id)
+      logits = torch.flatten(logits, 0,1)
+      logits = torch.cat((torch.zeros(E.shape[1],logits.shape[1]), logits))
+      E = torch.flatten(E)
+      loss = loss_fn(logits, E)
+      loss_tot = loss_tot + loss.item()
+      loss.backward()
+      optimizer.step()
+      del F, F_lens, E, logits, loss
+
+    avg_loss = loss_tot / len(dataloader)
+    print("************************")
+    print("avg_loss : ", avg_loss)
+    print("************************")
+    return avg_loss
 
 
 def compute_batch_total_bleu(E_ref, E_cand, target_sos, target_eos):
@@ -92,7 +120,20 @@ def compute_batch_total_bleu(E_ref, E_cand, target_sos, target_eos):
     '''
     # you can use E_ref.tolist() to convert the LongTensor to a python list
     # of numbers
-    assert False, "Fill me"
+    E_ref_ls = E_ref.tolist()
+    E_ref_ls = " ".join(E_ref_ls)
+    E_ref_ls = E_ref_ls.split(target_sos).strip()
+    E_cand_ls = E_cand.tolist()
+    E_cand_ls = " ".join(E_cand_ls)
+    E_cand_ls = E_cand_ls.split(target_sos).strip()
+
+    total_bleu = 0.0
+    print("E_ref_ls : ", len(E_ref_ls))
+    print("E_cand_ls : ", len(E_cand_ls))
+    for ref, cand in zip(E_ref_ls, E_cand_ls):
+      total_bleu += a2_bleu_score.BLEU_score(ref, cand, 4)
+
+    return total_bleu
 
 
 def compute_average_bleu_over_dataset(
@@ -130,4 +171,19 @@ def compute_average_bleu_over_dataset(
         The total BLEU score summed over all sequences divided by the number of
         sequences
     '''
-    assert False, "Fill me"
+    for F, F_lens, E_ref in dataloader:
+      if torch.cuda.is_available():
+        F = F.to(device)
+        F_lens = F_lens.to(device)
+
+      b_1 = model(F, F_lens)
+      print("b1 : ", b_1)
+      E_cand = b_1[:, 0]
+      total_bleu = compute_batch_total_bleu(E_ref, E_cand,
+        target_sos, target_eos)
+
+    avg_bleu = total_bleu / len(dataloader)
+    print("************************")
+    print("avg_bleu : ", avg_bleu)
+    print("************************")
+    return avg_bleu

@@ -45,6 +45,18 @@ def init(opts, dataloader):
         decoder_class = a2_encoder_decoder.DecoderWithAttention
     else:
         decoder_class = a2_encoder_decoder.DecoderWithoutAttention
+    print(encoder_class, decoder_class)
+    print(dataloader.dataset.source_vocab_size)
+    print(dataloader.dataset.target_vocab_size)
+    print(dataloader.dataset.source_pad_id)
+    print(dataloader.dataset.target_sos)
+    print(dataloader.dataset.target_eos)
+    print(opts.encoder_hidden_size)
+    print(opts.word_embedding_size)
+    print(opts.encoder_num_hidden_layers)
+    print(opts.encoder_dropout)
+    print(opts.cell_type)
+    print(opts.beam_width)
     return a2_encoder_decoder.EncoderDecoder(
         encoder_class, decoder_class,
         dataloader.dataset.source_vocab_size,
@@ -82,6 +94,7 @@ def train(opts):
     )
     del dev_prefixes, french_word2id, english_word2id
     model = init(opts, train_dataloader)
+    print(model)
     model.to(opts.device)
     optimizer = torch.optim.Adam(model.parameters())
     best_bleu = 0.
@@ -95,6 +108,8 @@ def train(opts):
         patience = opts.patience
     while epoch <= max_epochs and num_poor < patience:
         model.train()
+        print("***")
+        print(train_dataloader)
         loss = a2_training_and_testing.train_for_epoch(
             model, train_dataloader, optimizer, opts.device)
         model.eval()

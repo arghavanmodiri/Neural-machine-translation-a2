@@ -18,7 +18,7 @@ def test_update_beam():
         a2_encoder_decoder.Encoder, a2_encoder_decoder.DecoderWithAttention,
         V, V,
         encoder_hidden_size=H,
-        cell_type='rnn', beam_width=2,
+        cell_type='rnn', beam_width=1,
     )
     logpb_tm1 = torch.arange(K).flip(0).unsqueeze(0).expand(N, -1).float()
     logpb_tm1 -= 1.5
@@ -30,6 +30,10 @@ def test_update_beam():
     )  # [x, y, :] = [0., -1.1, -2.2, ...]
     # [0, x, :] = [0, 1]
     b_tm1_1 = torch.arange(K).unsqueeze(0).unsqueeze(0).expand(-1, N, -1)
+    print("htilde_t ", htilde_t.shape)
+    print("b_tm1_1 ", b_tm1_1.shape)
+    print("logpb_tm1 ", logpb_tm1.shape)
+    print("logpy_t ", logpy_t.shape)
     b_t_0, b_t_1, logpb_t = ed.update_beam(
         htilde_t, b_tm1_1, logpb_tm1, logpy_t)
     # batch 0 picks path 0 extended with 0, then path 1 extended with 0
