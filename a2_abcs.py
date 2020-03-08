@@ -697,7 +697,7 @@ class EncoderDecoderBase(torch.nn.Module, metaclass=abc.ABCMeta):
         pad_mask = pad_mask & torch.cat([pad_mask[:1], pad_mask[:-1]], 0)
         return pad_mask
 
-    def forward(self, F, F_lens, E=None, max_T=100, on_max='raise'):
+    def forward(self, F, F_lens, E=None, max_T=100, on_max='halt'):
         if self.training:
             if E is None:
                 raise RuntimeError('E must be set for training')
@@ -709,7 +709,6 @@ class EncoderDecoderBase(torch.nn.Module, metaclass=abc.ABCMeta):
         if self.training:
             return self.get_logits_for_teacher_forcing(h, F_lens, E)
         else:
-            max_T = 'halt'
             return self.beam_search(h, F_lens, max_T, on_max)
 
     @abc.abstractmethod

@@ -96,7 +96,7 @@ def train(opts):
     model = init(opts, train_dataloader)
     print(model)
     model.to(opts.device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(model.parameters())
     best_bleu = 0.
     num_poor = 0
     epoch = 1

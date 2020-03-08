@@ -176,11 +176,6 @@ def compute_average_bleu_over_dataset(
         F_lens = F_lens.to(device)
       b_1 = model(F, F_lens)
       E_cand = b_1[:, :, 0]
-      print("E_ref")
-      print(E_ref.T)
-      print("E_cand")
-      print(E_cand.T)
-      print(E_cand.shape)
       total_bleu = total_bleu + compute_batch_total_bleu(E_ref, E_cand,
         target_sos, target_eos)
 
