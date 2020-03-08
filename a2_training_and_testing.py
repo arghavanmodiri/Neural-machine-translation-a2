@@ -118,24 +118,16 @@ def compute_batch_total_bleu(E_ref, E_cand, target_sos, target_eos):
     '''
     # you can use E_ref.tolist() to convert the LongTensor to a python list
     # of numbers
-    print(E_ref)
     E_ref_ls = E_ref.T.tolist()
-    print("E_ref_ls")
-    print(E_ref_ls)
     #E_ref_ls = " ".join(E_ref_ls)
     #E_ref_ls = E_ref_ls.split(target_sos).strip()
     E_cand_ls = E_cand.T.tolist()
-    print("E_cand_ls")
-    print(E_cand_ls)
+
     #E_cand_ls = " ".join(E_cand_ls)
     #E_cand_ls = E_cand_ls.split(target_sos).strip()
 
     total_bleu = 0.0
-    print("E_ref_ls : ", len(E_ref_ls))
-    print("E_cand_ls : ", len(E_cand_ls))
     for ref, cand in zip(E_ref_ls, E_cand_ls):
-      print("ref : ", ref)
-      print("cand : ", cand)
       total_bleu += a2_bleu_score.BLEU_score(ref, cand, 4)
 
     print("total_bleu : ", total_bleu)

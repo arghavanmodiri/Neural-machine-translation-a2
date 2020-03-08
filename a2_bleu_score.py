@@ -55,12 +55,8 @@ def n_gram_precision(reference, candidate, n):
         The n-gram precision. In the case that the candidate has length 0,
         `p_n` is 0.
     '''
-    print("reference : ", reference)
-    print("candidate : ", candidate)
     ref_n_grams = grouper(reference, n)
     can_n_grams = grouper(candidate, n)
-    print("ref_n_grams : ", ref_n_grams)
-    print("can_n_grams : ", ref_n_grams)
     C = 0.0
     if len(can_n_grams)==0:
         return 0.0
