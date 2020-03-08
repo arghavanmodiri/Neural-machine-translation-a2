@@ -709,6 +709,7 @@ class EncoderDecoderBase(torch.nn.Module, metaclass=abc.ABCMeta):
         if self.training:
             return self.get_logits_for_teacher_forcing(h, F_lens, E)
         else:
+            max_T = 'halt'
             return self.beam_search(h, F_lens, max_T, on_max)
 
     @abc.abstractmethod
