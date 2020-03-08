@@ -65,24 +65,33 @@ def train_for_epoch(model, dataloader, optimizer, device):
     # If you are running into CUDA memory errors part way through training,
     # try "del F, F_lens, E, logits, loss" at the end of each iteration of
     # the loop.
-    loss_fn = torch.nn.CrossEntropyLoss()
+    loss_fn = torch.nn.CrossEntropyLoss(ignore_index=model.source_pad_id)
     loss_tot = 0.0
     i = 0
     for F, F_lens, E in dataloader:
-      i += 1
-      if i >= 100:
-        break
       if torch.cuda.is_available():
         F = F.to(device)
         F_lens = F_lens.to(device)
         E = E.to(device)
+      print(E)
+      print(E.shape)
+      print("---")
       optimizer.zero_grad()
-      logits = model(F, F_lens, E)
+      logits = model(F, F_lens, E, device)
       pad_mask = model.get_target_padding_mask(E)
+      print(pad_mask)
+      print(pad_mask.shape)
       E = E.masked_fill(pad_mask, model.source_pad_id)
+      print(E)
+      print(E.shape)
+      print(logits.shape)
+      print("----------")
       logits = torch.flatten(logits, 0,1)
-      logits = torch.cat((torch.zeros(E.shape[1],logits.shape[1]), logits))
-      E = torch.flatten(E)
+      #logits = torch.cat((logits, torch.zeros(E.shape[1],logits.shape[1],
+      #    device=device)))
+      E = torch.flatten(E[0:-1, :])
+      print(E.shape)
+      print(logits.shape)
       loss = loss_fn(logits, E)
       loss_tot = loss_tot + loss.item()
       loss.backward()
@@ -171,16 +180,19 @@ def compute_average_bleu_over_dataset(
         The total BLEU score summed over all sequences divided by the number of
         sequences
     '''
+    total_bleu = 0.0
     for F, F_lens, E_ref in dataloader:
       if torch.cuda.is_available():
         F = F.to(device)
         F_lens = F_lens.to(device)
-
+      print(" FFFFFF")
+      print(F)
       b_1 = model(F, F_lens)
       print("b1 : ", b_1)
       E_cand = b_1[:, 0]
-      total_bleu = compute_batch_total_bleu(E_ref, E_cand,
+      total_bleu = total_bleu + compute_batch_total_bleu(E_ref, E_cand,
         target_sos, target_eos)
+      del F, F_lens, E
 
     avg_bleu = total_bleu / len(dataloader)
     print("************************")

@@ -694,6 +694,8 @@ class EncoderDecoderBase(torch.nn.Module, metaclass=abc.ABCMeta):
             is :obj:`True` when ``E[t, n]`` is considered padding.
         '''
         pad_mask = E == self.target_eos  # (T - 1, N)
+        print("inja: ",pad_mask[:1])
+        print("onja: ",pad_mask[:-1])
         pad_mask = pad_mask & torch.cat([pad_mask[:1], pad_mask[:-1]], 0)
         return pad_mask
 
@@ -705,6 +707,7 @@ class EncoderDecoderBase(torch.nn.Module, metaclass=abc.ABCMeta):
         else:
             self.check_input(F, F_lens, None, max_T, on_max)
         h = self.encoder(F, F_lens)  # (S, N, 2 * H)
+        #print(h.shape)
         if self.training:
             return self.get_logits_for_teacher_forcing(h, F_lens, E)
         else:
