@@ -63,7 +63,6 @@ class Encoder(EncoderBase):
         # h (output) is of shape (S, N, 2 * H)
         # relevant pytorch modules:
         # torch.nn.utils.rnn.{pad_packed,pack_padded}_sequence
-        print(x.shape[0])
         sequence = torch.nn.utils.rnn.pack_padded_sequence(x, F_lens, enforce_sorted=False)
         output, hidden = self.rnn(sequence)
         h, _ = torch.nn.utils.rnn.pad_packed_sequence(output, padding_value=h_pad)
@@ -302,7 +301,7 @@ class EncoderDecoder(EncoderDecoderBase):
         '''
         logits_ls = []
         htilde_tm1 = self.decoder.get_first_hidden_state(h, F_lens)
-        for di in range(1, E.shape[0]):
+        for di in range(E.shape[0]-1):
             xtilde_t = self.decoder.get_current_rnn_input(E[di], 
                 htilde_tm1,h,F_lens)
             h_t = self.decoder.get_current_hidden_state(xtilde_t, htilde_tm1)

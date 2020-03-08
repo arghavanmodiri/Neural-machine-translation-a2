@@ -694,8 +694,6 @@ class EncoderDecoderBase(torch.nn.Module, metaclass=abc.ABCMeta):
             is :obj:`True` when ``E[t, n]`` is considered padding.
         '''
         pad_mask = E == self.target_eos  # (T - 1, N)
-        print("inja: ",pad_mask[:1])
-        print("onja: ",pad_mask[:-1])
         pad_mask = pad_mask & torch.cat([pad_mask[:1], pad_mask[:-1]], 0)
         return pad_mask
 

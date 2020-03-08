@@ -73,25 +73,14 @@ def train_for_epoch(model, dataloader, optimizer, device):
         F = F.to(device)
         F_lens = F_lens.to(device)
         E = E.to(device)
-      print(E)
-      print(E.shape)
-      print("---")
       optimizer.zero_grad()
       logits = model(F, F_lens, E, device)
       pad_mask = model.get_target_padding_mask(E)
-      print(pad_mask)
-      print(pad_mask.shape)
       E = E.masked_fill(pad_mask, model.source_pad_id)
-      print(E)
-      print(E.shape)
-      print(logits.shape)
-      print("----------")
       logits = torch.flatten(logits, 0,1)
       #logits = torch.cat((logits, torch.zeros(E.shape[1],logits.shape[1],
       #    device=device)))
-      E = torch.flatten(E[0:-1, :])
-      print(E.shape)
-      print(logits.shape)
+      E = torch.flatten(E[1:, :])
       loss = loss_fn(logits, E)
       loss_tot = loss_tot + loss.item()
       loss.backward()
@@ -129,19 +118,27 @@ def compute_batch_total_bleu(E_ref, E_cand, target_sos, target_eos):
     '''
     # you can use E_ref.tolist() to convert the LongTensor to a python list
     # of numbers
-    E_ref_ls = E_ref.tolist()
-    E_ref_ls = " ".join(E_ref_ls)
-    E_ref_ls = E_ref_ls.split(target_sos).strip()
-    E_cand_ls = E_cand.tolist()
-    E_cand_ls = " ".join(E_cand_ls)
-    E_cand_ls = E_cand_ls.split(target_sos).strip()
+    print(E_ref)
+    E_ref_ls = E_ref.T.tolist()
+    print("E_ref_ls")
+    print(E_ref_ls)
+    #E_ref_ls = " ".join(E_ref_ls)
+    #E_ref_ls = E_ref_ls.split(target_sos).strip()
+    E_cand_ls = E_cand.T.tolist()
+    print("E_cand_ls")
+    print(E_cand_ls)
+    #E_cand_ls = " ".join(E_cand_ls)
+    #E_cand_ls = E_cand_ls.split(target_sos).strip()
 
     total_bleu = 0.0
     print("E_ref_ls : ", len(E_ref_ls))
     print("E_cand_ls : ", len(E_cand_ls))
     for ref, cand in zip(E_ref_ls, E_cand_ls):
+      print("ref : ", ref)
+      print("cand : ", cand)
       total_bleu += a2_bleu_score.BLEU_score(ref, cand, 4)
 
+    print("total_bleu : ", total_bleu)
     return total_bleu
 
 
@@ -185,14 +182,15 @@ def compute_average_bleu_over_dataset(
       if torch.cuda.is_available():
         F = F.to(device)
         F_lens = F_lens.to(device)
-      print(" FFFFFF")
-      print(F)
       b_1 = model(F, F_lens)
-      print("b1 : ", b_1)
-      E_cand = b_1[:, 0]
+      E_cand = b_1[:, :, 0]
+      print("E_ref")
+      print(E_ref.T)
+      print("E_cand")
+      print(E_cand.T)
+      print(E_cand.shape)
       total_bleu = total_bleu + compute_batch_total_bleu(E_ref, E_cand,
         target_sos, target_eos)
-      del F, F_lens, E
 
     avg_bleu = total_bleu / len(dataloader)
     print("************************")
