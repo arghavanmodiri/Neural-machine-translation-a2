@@ -146,8 +146,9 @@ class DecoderWithoutAttention(DecoderBase):
         # xtilde_t is of shape (N, Itilde)
         # htilde_tm1 is of shape (N, 2 * H) or a tuple of two of those (LSTM)
         # htilde_t (output) is of same shape as htilde_tm1
-        c_tm1 = torch.zeros_like(htilde_tm1)
+        #c_tm1 = torch.zeros_like(htilde_tm1)
         if self.cell_type == 'lstm':
+            #print(htilde_tm1)
             htilde_t, ctilde_t = self.cell(xtilde_t, htilde_tm1)
         else:
             htilde_t = self.cell(xtilde_t, htilde_tm1)
@@ -304,7 +305,12 @@ class EncoderDecoder(EncoderDecoderBase):
         for di in range(E.shape[0]-1):
             xtilde_t = self.decoder.get_current_rnn_input(E[di], 
                 htilde_tm1,h,F_lens)
-            h_t = self.decoder.get_current_hidden_state(xtilde_t, htilde_tm1)
+            if self.cell_type == 'lstm':
+                h_t = self.decoder.get_current_hidden_state(xtilde_t,
+                    (htilde_tm1, torch.zeros_like(htilde_tm1)))
+            else:
+                h_t = self.decoder.get_current_hidden_state(xtilde_t,
+                    htilde_tm1)
             logit_t = self.decoder.get_current_logits(2*h_t)
             logits_ls.append(logit_t)
         logits = torch.stack([i for i in logits_ls])
@@ -342,4 +348,5 @@ class EncoderDecoder(EncoderDecoderBase):
         b_t_1 = torch.cat([b_tm1_1, v], dim=0)
         # For greedy search, all paths come from the same prefix, so
         b_t_0 = htilde_t
+        
         return b_t_0, b_t_1, logpb_t
