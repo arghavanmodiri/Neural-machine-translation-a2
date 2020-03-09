@@ -306,9 +306,9 @@ class EncoderDecoder(EncoderDecoderBase):
         for di in range(E.shape[0]-1):
             if self.cell_type == 'lstm':
                 xtilde_t = self.decoder.get_current_rnn_input(E[di], 
-                    (htilde_tm1, torch.zeros_like(htilde_tm1)),h,F_lens)
+                    (htilde_tm1, htilde_tm1),h,F_lens)
                 h_t = self.decoder.get_current_hidden_state(xtilde_t,
-                    (htilde_tm1, torch.zeros_like(htilde_tm1)))
+                    (htilde_tm1, htilde_tm1))
             else:
                 xtilde_t = self.decoder.get_current_rnn_input(E[di], 
                     htilde_tm1,h,F_lens)
