@@ -244,7 +244,6 @@ class DecoderWithAttention(DecoderWithoutAttention):
         # htilde_t is of shape (N, 2 * H)
         # h is of shape (S, N, 2 * H)
         # e_t (output) is of shape (S, N)
-        print(htilde_t.shape)
         cos = torch.nn.CosineSimilarity(dim=1, eps=1e-08)
         e_t = cos(htilde_t, h[0]).view(1,-1)
         c = 1
