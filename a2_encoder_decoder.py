@@ -112,8 +112,6 @@ class DecoderWithoutAttention(DecoderBase):
         # F_lens is of shape (N,)
         # htilde_tm1 (output) is of shape (N, 2 * H)
         # relevant pytorch modules: torch.cat
-        #output[0 to self.hidden_state_size // 2 - 1] = h[hello, arhavan, tina]
-        #output[self.hidden_state_size // 2 to last]= h[hello,hello,tina]
         #unpadded = h[:F_lens, :]
         #:self.hidden_state_size // 2
         #nn.torch.cat(h[0, :, :unpadded // 2)], 
@@ -207,7 +205,10 @@ class DecoderWithAttention(DecoderWithoutAttention):
     def get_current_rnn_input(self, E_tm1, htilde_tm1, h, F_lens):
         # update to account for attention. Use attend() for c_t
         xtilde_t = self.embedding(E_tm1)
-        temp = self.attend(htilde_tm1, h, F_lens)
+        if self.cell_type == 'lstm':
+            temp = self.attend(htilde_tm1[0], h, F_lens)
+        else:
+            temp = self.attend(htilde_tm1, h, F_lens)
         xtilde_t = torch.cat((xtilde_t, temp), 1)
         return xtilde_t
 
@@ -243,6 +244,7 @@ class DecoderWithAttention(DecoderWithoutAttention):
         # htilde_t is of shape (N, 2 * H)
         # h is of shape (S, N, 2 * H)
         # e_t (output) is of shape (S, N)
+        print(htilde_t.shape)
         cos = torch.nn.CosineSimilarity(dim=1, eps=1e-08)
         e_t = cos(htilde_t, h[0]).view(1,-1)
         c = 1
@@ -303,12 +305,14 @@ class EncoderDecoder(EncoderDecoderBase):
         logits_ls = []
         htilde_tm1 = self.decoder.get_first_hidden_state(h, F_lens)
         for di in range(E.shape[0]-1):
-            xtilde_t = self.decoder.get_current_rnn_input(E[di], 
-                htilde_tm1,h,F_lens)
             if self.cell_type == 'lstm':
+                xtilde_t = self.decoder.get_current_rnn_input(E[di], 
+                    (htilde_tm1, torch.zeros_like(htilde_tm1)),h,F_lens)
                 h_t = self.decoder.get_current_hidden_state(xtilde_t,
                     (htilde_tm1, torch.zeros_like(htilde_tm1)))
             else:
+                xtilde_t = self.decoder.get_current_rnn_input(E[di], 
+                    htilde_tm1,h,F_lens)
                 h_t = self.decoder.get_current_hidden_state(xtilde_t,
                     htilde_tm1)
             logit_t = self.decoder.get_current_logits(2*h_t[0])
