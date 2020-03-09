@@ -697,7 +697,7 @@ class EncoderDecoderBase(torch.nn.Module, metaclass=abc.ABCMeta):
         pad_mask = pad_mask & torch.cat([pad_mask[:1], pad_mask[:-1]], 0)
         return pad_mask
 
-    def forward(self, F, F_lens, E=None, max_T=100, on_max='raise'):
+    def forward(self, F, F_lens, E=None, max_T=100, on_max='halt'):
         if self.training:
             if E is None:
                 raise RuntimeError('E must be set for training')
@@ -819,8 +819,8 @@ class EncoderDecoderBase(torch.nn.Module, metaclass=abc.ABCMeta):
             del logits_t, logpy_t, finished, htilde_t
             if self.cell_type == 'lstm':
                 htilde_tm1 = (
-                    b_t_0[0].flatten(end_dim=1).squeeze(),
-                    b_t_0[1].flatten(end_dim=1).squeeze()
+                    b_t_0[0].flatten(end_dim=1),
+                    b_t_0[1].flatten(end_dim=1)
                 )
             else:
                 htilde_tm1 = b_t_0.flatten(end_dim=1)  # (N * K, 2 * H)
