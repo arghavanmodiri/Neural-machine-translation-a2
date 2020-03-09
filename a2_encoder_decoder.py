@@ -149,7 +149,7 @@ class DecoderWithoutAttention(DecoderBase):
         #c_tm1 = torch.zeros_like(htilde_tm1)
         if self.cell_type == 'lstm':
             #print(htilde_tm1)
-            htilde_t, ctilde_t = self.cell(xtilde_t, htilde_tm1)
+            htilde_t = self.cell(xtilde_t, htilde_tm1)
         else:
             htilde_t = self.cell(xtilde_t, htilde_tm1)
         return htilde_t
@@ -311,7 +311,7 @@ class EncoderDecoder(EncoderDecoderBase):
             else:
                 h_t = self.decoder.get_current_hidden_state(xtilde_t,
                     htilde_tm1)
-            logit_t = self.decoder.get_current_logits(2*h_t)
+            logit_t = self.decoder.get_current_logits(2*h_t[0])
             logits_ls.append(logit_t)
         logits = torch.stack([i for i in logits_ls])
         if logits.shape[0] !=E.shape[0]-1 and \
@@ -348,5 +348,5 @@ class EncoderDecoder(EncoderDecoderBase):
         b_t_1 = torch.cat([b_tm1_1, v], dim=0)
         # For greedy search, all paths come from the same prefix, so
         b_t_0 = htilde_t
-        
+
         return b_t_0, b_t_1, logpb_t

@@ -130,7 +130,6 @@ def compute_batch_total_bleu(E_ref, E_cand, target_sos, target_eos):
     for ref, cand in zip(E_ref_ls, E_cand_ls):
       total_bleu += a2_bleu_score.BLEU_score(ref, cand, 4)
 
-    print("total_bleu : ", total_bleu)
     return total_bleu
 
 
