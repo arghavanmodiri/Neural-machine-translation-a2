@@ -340,6 +340,9 @@ class EncoderDecoder(EncoderDecoderBase):
         # torch.{flatten,topk,unsqueeze,expand_as,gather,cat}
         # hint: if you flatten a two-dimensional array of shape z of (A, B),
         # then the element z[a, b] maps to z'[a*B + b]
+
+        '''
+        #Below is the Greedy Beam Search provided by TA in March 2020
         assert self.beam_width == 1, "Greedy requires beam width of 1"
         extensions_t = (logpb_tm1.unsqueeze(-1) + logpy_t).squeeze(1)  # (N, V)
 
@@ -353,3 +356,119 @@ class EncoderDecoder(EncoderDecoderBase):
         b_t_0 = htilde_t
 
         return b_t_0, b_t_1, logpb_t
+        #End of Greedy Beam Search
+        '''
+        if self.cell_type == 'lstm':
+            N = htilde_t[0].size()[0]
+            K = htilde_t[0].size()[1]
+            H2 = htilde_t[0].size()[2]
+        else:
+            N = htilde_t.size()[0]
+            K = htilde_t.size()[1]
+            H2 = htilde_t.size()[2]
+
+        extensions_t = (logpb_tm1.unsqueeze(-1) + logpy_t) # (N, K, V)
+        #logpb_t, v = torch.topk(extensions_t.flatten(start_dim=1), K)  # (N, K), (N, K)
+        #v = v.unsqueeze(0) # (1, N, K)
+        #b_t_1 = torch.cat([b_tm1_1, v], dim=0)
+        logpb_t1, v1 = torch.topk(extensions_t, K)  # (N, K, K), (N, K, K)
+        logpb_t, v2 = torch.topk(logpb_t1.flatten(start_dim=1), K) # (N, K)
+        v = torch.gather(v1.flatten(start_dim=1), 1, v2) # (N, K)
+        if self.cell_type == 'lstm':
+            kept_path0 = (v2//K).unsqueeze(-1).expand_as(htilde_t[0])
+            kept_path1 = (v2//K).unsqueeze(-1).expand_as(htilde_t[1])
+            b_t_0 = tuple([torch.gather(htilde_t[0], 1,kept_path0),
+                          torch.gather(htilde_t[1], 1,kept_path1)])
+        else:
+            kept_path = (v2//K).unsqueeze(-1).expand_as(htilde_t)
+            print("************ ",kept_path)
+            b_t_0 = torch.gather(htilde_t, 1,kept_path)
+        #h_temp = htilde_t.flatten(end_dim=1).unsqueeze(1).expand(N*K,K,H2).reshape(N, K*K, H2)
+        v = v.unsqueeze(0) #(1, N, K)
+        kept_path = (v2//K).T.unsqueeze(-1).T.expand_as(b_tm1_1) # (t, N, K)
+        #b_tm1_1 = torch.gather(b_tm1_1, 1,kept_path)
+        b_t_1 = torch.cat([torch.gather(b_tm1_1, 2,kept_path), v], dim=0)
+
+        return b_t_0, b_t_1, logpb_t
+
+print("****")
+
+en = Encoder(10)
+x = en.get_all_rnn_inputs(torch.LongTensor([[1,2,4,5],[4,3,9,8]]))
+F_lens = torch.LongTensor([2,2,2,2])
+h = en.get_all_hidden_states(x, F_lens, 2.2)
+b_tm1_1 =torch.Tensor([[4., 4., 4., 4.],
+         [3., 3., 3., 3.],
+         [2., 2., 2., 2.],
+         [1., 1., 1., 1.],
+         [5., 5., 5., 5.]])
+dec = DecoderWithoutAttention(20)
+logpb_tm1 =torch.Tensor([[1.2, 1.3, 1.4, 1.5],
+         [3., 3.1, 3.2, 3.3],
+         [2.2, 2.2, 2.3, 2.3],
+         [1., 1., 1.2, 1.3],
+         [5.1, 5.2, 5.3, 5.4]])
+#htilde_tm1= dec.get_first_hidden_state(h, F_lens)
+logpy_t = torch.Tensor([
+         [[1.2, 1.3, 1.4, 1.5, 1.2, 1.3, 1.4, 1.5],[1.2, 1.3, 1.4, 1.5, 1.2, 1.3, 1.4, 1.5],[1.2, 1.3, 1.4, 1.5, 1.2, 1.3, 1.4, 1.5],[2.2, 2.2, 2.3, 2.3,3., 3.1, 3.2, 3.3]],
+         [[3., 3.1, 3.2, 3.3,3., 3.1, 3.2, 3.3],[3., 3.1, 3.2, 3.3,3., 3.1, 3.2, 3.3],[3., 3.1, 3.2, 3.3,3., 3.1, 3.2, 3.3],[3., 3.1, 3.2, 3.3,3., 3.1, 3.2, 3.3]],
+         [[2.2, 2.2, 2.3, 2.3,3., 3.1, 3.2, 3.3],[3., 3.1, 3.2, 3.3,3., 3.1, 3.2, 3.3],[3., 3.1, 3.2, 3.3,3., 3.1, 3.2, 3.3],[3., 3.1, 3.2, 3.3,3., 3.1, 3.2, 3.3]],
+         [[1., 1., 1.2, 1.3,1., 1., 1.2, 1.3],[1., 1., 1.2, 1.3,1., 1., 1.2, 1.3],[2.2, 2.2, 2.3, 2.3,3., 3.1, 3.2, 3.3],[2.2, 2.2, 2.3, 2.3,3., 3.1, 3.2, 3.3]],
+         [[5.1, 5.2, 5.3, 5.4,5.1, 5.2, 5.3, 5.4],[3., 3.1, 3.2, 3.3,3., 3.1, 3.2, 3.3],[3., 3.1, 3.2, 3.3,3., 3.1, 3.2, 3.3],[3., 3.1, 3.2, 3.3,3., 3.1, 3.2, 3.3]]])
+htilde_t = torch.Tensor([[[1., 2., 3., 4.],
+         [4., 5., 5., 3.],
+         [6., 7., 9., 4.],
+         [9., 8., 1., 5.]],
+
+        [[4., 3., 2., 1.],
+         [9., 8., 1., 5.],
+         [3., 9., 1., 6.],
+         [6., 7., 9., 4.]],
+
+        [[1., 5., 4., 2.],
+         [2., 3., 4., 3.],
+         [7., 2., 3., 8.],
+         [7., 2., 3., 8.]],
+
+        [[2., 8., 3., 5.],
+         [4., 4., 5., 1.],
+         [4., 5., 1., 9.],
+         [3., 9., 1., 6.]],
+
+        [[1., 2., 3., 5.],
+         [4., 5., 2., 4.],
+         [4., 5., 2., 4.],
+         [7., 5., 3., 2.]]])
+endec = EncoderDecoder(Encoder,DecoderWithAttention,8,8)
+print(endec.update_beam(htilde_t, b_tm1_1, logpb_tm1, logpy_t))
+'''
+logpb_tm1 = torch.where(
+            torch.arange(3) > 0,  # K
+            torch.full_like(
+                htilde_tm1[..., 0].unsqueeze(1), -float('inf')),  # k > 0
+            torch.zeros_like(
+                htilde_tm1[..., 0].unsqueeze(1)),  # k == 0
+        )
+print(logpb_tm1)
+print(logpb_tm1.size())
+print("*******************")
+b_tm1_1 = torch.full_like(  # (t, N, K)
+            logpb_tm1, 100100, dtype=torch.long).unsqueeze(0)
+print(b_tm1_1)
+print(b_tm1_1.size())
+
+#print(h[0, 0,dec.hidden_state_size//2:])
+print("*******************")
+F = torch.LongTensor([4,3,2])
+h2 = torch.LongTensor([[[1,2,3,4],[4,5,5,3],[6,7,9,4]],
+                       [[4,3,2,1],[9,8,1,5],[3,9,1,6]],
+                       [[1,5,4,2],[2,3,4,3],[7,2,3,8]],
+                       [[2,8,3,5],[4,4,5,1],[4,5,1,9]]])
+print(h2.size())
+#temp = h2[F[:]-1,:,:2//2]
+#print(torch.LongTensor(h2[F[0]-1, 0,:]))
+temp = torch.cat([h2[F[i]-1, i,:] for i in [0,1]], 1)
+print(temp.size())
+print(temp)
+#print(torch.diagonal(temp,dim1=0, dim2=1))
+'''

@@ -68,7 +68,9 @@ def train_for_epoch(model, dataloader, optimizer, device):
     loss_fn = torch.nn.CrossEntropyLoss(ignore_index=model.source_pad_id)
     loss_tot = 0.0
     i = 0
+    seq_count = 0 #NEW
     for F, F_lens, E in dataloader:
+      seq_count += E.size()[1] #NEW
       if torch.cuda.is_available():
         F = F.to(device)
         F_lens = F_lens.to(device)
@@ -87,7 +89,8 @@ def train_for_epoch(model, dataloader, optimizer, device):
       optimizer.step()
       del F, F_lens, E, logits, loss
 
-    avg_loss = loss_tot / len(dataloader)
+    #avg_loss = loss_tot / len(dataloader)
+    avg_loss = loss_tot / seq_count #NEW
     print("************************")
     print("avg_loss : ", avg_loss)
     print("************************")
@@ -128,7 +131,13 @@ def compute_batch_total_bleu(E_ref, E_cand, target_sos, target_eos):
 
     total_bleu = 0.0
     for ref, cand in zip(E_ref_ls, E_cand_ls):
-      total_bleu += a2_bleu_score.BLEU_score(ref, cand, 4)
+      #New:
+      while(ref[-1] == target_eos):
+        ref.pop()
+      while(cand[-1] == target_eos):
+        cand.pop()
+      #EndNew
+      total_bleu += a2_bleu_score.BLEU_score(ref[1:], cand[1:], 4)
 
     return total_bleu
 
@@ -169,16 +178,19 @@ def compute_average_bleu_over_dataset(
         sequences
     '''
     total_bleu = 0.0
+    seq_count = 0 #NEW
     for F, F_lens, E_ref in dataloader:
       if torch.cuda.is_available():
         F = F.to(device)
         F_lens = F_lens.to(device)
       b_1 = model(F, F_lens)
-      E_cand = b_1[:, :, 0]
+      E_cand = b_1[..., 0] #b_1[:, :, 0]
       total_bleu = total_bleu + compute_batch_total_bleu(E_ref, E_cand,
         target_sos, target_eos)
+      seq_count += E_ref.size()[1] #NEW
 
-    avg_bleu = total_bleu / len(dataloader)
+    #avg_bleu = total_bleu / len(dataloader)
+    avg_bleu = total_bleu / seq_count #NEW
     print("************************")
     print("avg_bleu : ", avg_bleu)
     print("************************")

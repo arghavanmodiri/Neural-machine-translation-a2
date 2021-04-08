@@ -6,7 +6,7 @@ You do not need to import anything more than what is here
 '''
 
 from math import exp  # exp(x) gives e^x
-
+import numpy as np
 
 def grouper(seq, n):
     '''Extract all n-grams from a sequence
@@ -55,6 +55,8 @@ def n_gram_precision(reference, candidate, n):
         The n-gram precision. In the case that the candidate has length 0,
         `p_n` is 0.
     '''
+
+    #Below code was submitted
     ref_n_grams = grouper(reference, n)
     can_n_grams = grouper(candidate, n)
     C = 0.0
@@ -64,7 +66,31 @@ def n_gram_precision(reference, candidate, n):
         if w in ref_n_grams:
             C += 1
     return C*1.0/len(can_n_grams)
+    
+    #Below code is written after 1 year in Feb2021
+    '''
+    ref_n_grams = grouper(reference, n)
+    can_n_grams = grouper(candidate, n)
+    if len(candidate)==0 or len(can_n_grams)==0:
+        return 0.0
 
+    C = 0.0
+    mp_ref = {}
+
+    for elem in ref_n_grams:
+        elem_tuple = tuple(elem)
+        if elem_tuple in mp_ref:
+            mp_ref[elem_tuple] += 1
+        else:
+            mp_ref[elem_tuple] = 1
+
+    for w in can_n_grams:
+        w_tuple = tuple(w)
+        if w_tuple in mp_ref and mp_ref[w_tuple] > 0:
+            C += 1
+            mp_ref[w_tuple] -= 1
+    return C*1.0/len(can_n_grams)
+    '''
 
 def brevity_penalty(reference, candidate):
     '''Calculate the brevity penalty between a reference and candidate
@@ -124,16 +150,15 @@ def BLEU_score(reference, hypothesis, n):
 
 """
 reference = '''\
-it is a guide to action that ensures that the military will always heed
-party commands'''.strip().split()
+    it is a guide to action that ensures that the military will always heed
+    party commands'''.strip().split()
 candidate = '''\
-it is a guide to action which ensures that the military always obeys the
-commands of the party'''.strip().split()
+    it is a guide to action which ensures that the military always obeys the
+    commands of the party'''.strip().split()
+
+# should work with token ids (ints) as well
 reference = [hash(word) for word in reference]
 candidate = [hash(word) for word in candidate]
-#print(grouper(["hello", "world", "!"], 2))
-print(reference)
-print(candidate)
-print(n_gram_precision(reference, candidate, 2))
-print(brevity_penalty(reference, candidate))
+print(n_gram_precision(reference, candidate, 1))
+assert np.isclose( n_gram_precision(reference, candidate, 1), 15 / 18)
 """
